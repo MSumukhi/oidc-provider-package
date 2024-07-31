@@ -3,112 +3,125 @@ import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import http from 'http';
-import { Issuer, Strategy } from 'openid-client';
-import passport from 'passport';
+import { createServer } from 'http';
 import helmet from 'helmet';
+import { Issuer, generators } from 'openid-client';
 
-// Convert `import.meta.url` to a directory path
+// Fix for __dirname in ES module scope
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Set up Express app
 const app = express();
+const port = 8080;
 
 app.use(cookieParser());
-app.use(express.urlencoded({
-   extended: true,
-}));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(session({
-     secret: 'secret',                  
-     resave: false,                  
-     saveUninitialized: true,
-}));
 app.use(helmet());
-app.use(passport.initialize());
-app.use(passport.session());
 
-passport.serializeUser((user, done) => {
-    console.log('-----------------------------');
-    console.log('serialize user');
-    console.log(user);
-    console.log('-----------------------------');
-    done(null, user);
-});
-
-passport.deserializeUser((user, done) => {
-    console.log('-----------------------------');
-    console.log('deserialize user');
-    console.log(user);
-    console.log('-----------------------------');
-    done(null, user);
-});
-
-const issuer = await Issuer.discover('http://localhost:3000'); // OIDC provider URL
-const client = new issuer.Client({
-    client_id: 'oidcCLIENT',
-    client_secret: 'client_super_secret',
-    redirect_uris: ['http://localhost:8080/login/callback'],
-    response_types: ['code'],
-});
-
-passport.use('oidc', new Strategy({ client, passReqToCallback: true }, (req, tokenSet, userinfo, done) => {
-    console.log("tokenSet", tokenSet);
-    console.log("userinfo", userinfo);
-    req.session.tokenSet = tokenSet;
-    req.session.userinfo = userinfo;
-    req.session.save((err) => {
-        if (err) {
-            console.log('Error saving session:', err);
-            return done(err);
-        }
-        console.log('Session saved successfully');
-        return done(null, tokenSet.claims());
-    });
+app.use(session({
+  secret: 'secret',
+  resave: false,
+  saveUninitialized: true,
 }));
 
-app.get('/login',
-(req, res, next) => {
-    console.log('-----------------------------');
-    console.log('Login Handler Started');
-    next();
-},
-passport.authenticate('oidc', { scope: "openid" }));
+app.use((req, res, next) => {
+  console.log('Session data:', req.session);
+  next();
+});
 
-app.get('/login/callback', (req, res, next) => {
-    passport.authenticate('oidc', (err, user, info) => {
-      if (err) {
-        console.error('Error during authentication:', err);
-        return next(err);
-      }
-      if (!user) {
-        console.log('No user received.');
-        return res.redirect('/');
-      }
-      req.logIn(user, (err) => {
+// Discover the OIDC provider
+Issuer.discover('http://localhost:3000')
+  .then(oidcIssuer => {
+    const client = new oidcIssuer.Client({
+      client_id: 'oidcCLIENT',
+      client_secret: 'client_super_secret',
+      redirect_uris: ["http://localhost:8080/callback"],
+      response_types: ['code'],
+    });
+
+    app.get('/auth', (req, res) => {
+      const code_verifier = generators.codeVerifier();
+      const code_challenge = generators.codeChallenge(code_verifier);
+
+      req.session.code_verifier = code_verifier;
+
+      req.session.save(err => {
         if (err) {
-          console.error('Error during login:', err);
-          return next(err);
+          console.error('Session save error', err);
+          res.status(500).send('Error saving session');
+          return;
         }
-        return res.redirect('/user');
+
+        const url = client.authorizationUrl({
+          scope: 'openid email profile',
+          code_challenge,
+          code_challenge_method: 'S256',
+        });
+
+        console.log('Authorization URL:', url);
+        res.redirect(url);
       });
-    })(req, res, next);
-});
+    });
 
-app.get("/", (req, res) => {
-   res.send(" <a href='/login'>Log In with OAuth 2.0 Provider </a>");
-});
+    app.get('/callback', async (req, res) => {
+      const params = client.callbackParams(req);
+      try {
+        const tokenSet = await client.callback('http://localhost:8080/callback', params, { code_verifier: req.session.code_verifier });
+        console.log('TokenSet:', tokenSet);
 
-app.get("/user", (req, res) => {
-    console.log('Session TokenSet:', req.session.tokenSet);
-    console.log('Session UserInfo:', req.session.userinfo);
-    res.header("Content-Type", 'application/json');   
-    res.end(JSON.stringify({ tokenset: req.session.tokenSet, userinfo: req.session.userinfo }, null, 2));
-});
+        req.session.tokenSet = tokenSet;
+        req.session.save(err => {
+          if (err) {
+            console.error('Session save error', err);
+            res.status(500).send('Error saving session');
+            return;
+          }
 
-const httpServer = http.createServer(app);
-httpServer.listen(8080, () => {
-    console.log(`Http Server Running on port 8080`);
-});
+          res.redirect('/user');
+        });
+      } catch (err) {
+        console.error('Callback error:', err);
+        res.status(500).send('Callback error');
+      }
+    });
+
+    app.get("/", (req, res) => {
+      res.send('OIDC Test Client is running. Go to <a href="/auth">/auth</a> to start the authentication flow.');
+    });
+
+    app.get("/user", async (req, res) => {
+      console.log("Inside /user route");
+      console.log("Session TokenSet:", req.session.tokenSet);
+
+      if (!req.session.tokenSet) {
+        res.status(401).send('User not authenticated');
+        return;
+      }
+
+      try {
+        const userinfo = await client.userinfo(req.session.tokenSet.access_token);
+        res.header("Content-Type", 'application/json');
+        res.end(JSON.stringify({
+          tokenset: req.session.tokenSet,
+          userinfo: userinfo
+        }, null, 2));
+      } catch (err) {
+        console.error('Userinfo error:', err);
+        res.status(500).send('Userinfo error');
+      }
+    });
+
+    // Start the server
+    const httpServer = createServer(app);
+    httpServer.listen(port, () => {
+      console.log(`RP client listening at http://localhost:${port}`);
+    });
+  })
+  .catch(err => {
+    console.error('Issuer discovery failed', err);
+  });

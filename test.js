@@ -5,7 +5,7 @@ const clients = [
     client_id: 'oidcCLIENT',
     client_secret: 'client_super_secret',
     grant_types: ['authorization_code'],
-    redirect_uris: ['http://localhost:8080/login/callback'], // Update this to match the client.js configuration
+    redirect_uris: ['http://localhost:8080/callback'],  // Ensure this URI matches your client application
   },
 ];
 
