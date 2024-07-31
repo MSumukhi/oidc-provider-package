@@ -12,6 +12,6 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "oidc-provider": "^8.5.1"
+    "oidc-provider-package": "^1.0.1"
   }
 }
