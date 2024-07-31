@@ -1,26 +1,25 @@
-// test.js
 import { Provider } from 'oidc-provider-package';
 
 const clients = [
   {
-    client_id: 'foo',
-    client_secret: 'bar',
+    client_id: 'oidcCLIENT',
+    client_secret: 'client_super_secret',
     grant_types: ['authorization_code'],
-    redirect_uris: ['https://localhost:3001/cb'],
+    redirect_uris: ['http://localhost:8080/login/callback'], // Update this to match the client.js configuration
   },
 ];
 
 const configuration = {
   clients,
   features: {
-    introspection: { enabled: true }, // enable token introspection
-    revocation: { enabled: true }, // enable token revocation
+    introspection: { enabled: true },
+    revocation: { enabled: true },
   },
   findAccount: async function (ctx, id) {
     return {
       accountId: id,
       async claims(use, scope) {
-        return { sub: id }; // minimal claims object
+        return { sub: id };
       },
     };
   },
