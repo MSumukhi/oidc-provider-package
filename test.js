@@ -6,7 +6,7 @@ const clients = [
     client_id: 'foo',
     client_secret: 'bar',
     grant_types: ['authorization_code'],
-    redirect_uris: ['http://localhost:3001/cb'],
+    redirect_uris: ['https://localhost:3001/cb'],
   },
 ];
 
