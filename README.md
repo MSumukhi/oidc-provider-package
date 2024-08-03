@@ -8,14 +8,14 @@ This project sets up an OpenID Connect (OIDC) provider and a relying party (RP) 
 1. Clone the repository and navigate to the project:
 
     ```sh
-    git clone <repository-url>
-    cd <project-directory>
+    git clone https://github.com/MSumukhi/oidc-provider-package.git
+    cd oidc-provider-package
     ```
 
 2. Install dependencies for both provider and client:
 
     ```sh
-    cd Provider
+    cd ../Provider
     npm install
     cd ../client
     npm install
