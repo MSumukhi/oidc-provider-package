@@ -51,12 +51,12 @@ This project sets up an OpenID Connect (OIDC) provider and a relying party (RP) 
 ## Screenshots
 
 ### Provider Configuration
-![Provider Configuration](Images/Screenshot%202024-08-03%20at%207.12.49%20PM.png)
+![Provider Configuration](Images/Provider.png)
 
 ### Client Authentication Flow
-![Client Authentication](Images/Screenshot 2024-08-03 at 7.12.57 PM.png)
-![Client Authentication](Images/Screenshot 2024-08-03 at 7.13.34 PM.png)
+![Client Authentication](Images/Authentication.png)
+![Client Authentication](Images/Client Authentication.png)
 
 ### Session and Token Details
-![Session and Token Details](Images/Screenshot 2024-08-03 at 7.13.50 PM.png)
+![Session and Token Details](Images/Session and Token.png)
 
