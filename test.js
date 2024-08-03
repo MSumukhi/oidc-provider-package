@@ -1,4 +1,4 @@
-import { Provider } from 'oidc-provider-package';
+import { Provider } from 'oidc-provider';
 
 const clients = [
   {
