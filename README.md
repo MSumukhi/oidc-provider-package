@@ -38,7 +38,7 @@ This project sets up an OpenID Connect (OIDC) provider and a relying party (RP) 
 
     ```sh
     cd client
-    node client.js
+    npx nodemon client.js
     ```
 
 2. Access `http://localhost:8080/auth` to start the authentication flow.
