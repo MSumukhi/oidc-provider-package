@@ -35,12 +35,12 @@ app.use((req, res, next) => {
 });
 
 // Discover the OIDC provider
-Issuer.discover('http://localhost')  // Changed port to 80
+Issuer.discover('http://3.22.6.176')  // Using the Elastic IP address
   .then(oidcIssuer => {
     const client = new oidcIssuer.Client({
       client_id: 'oidcCLIENT',
       client_secret: 'client_super_secret',
-      redirect_uris: ["http://localhost:8080/callback"],
+      redirect_uris: ["http://3.22.6.176:8080/callback"],  // Update callback with Elastic IP
       response_types: ['code'],
     });
 
@@ -71,7 +71,7 @@ Issuer.discover('http://localhost')  // Changed port to 80
     app.get('/callback', async (req, res) => {
       const params = client.callbackParams(req);
       try {
-        const tokenSet = await client.callback('http://localhost:8080/callback', params, { code_verifier: req.session.code_verifier });
+        const tokenSet = await client.callback('http://3.22.6.176:8080/callback', params, { code_verifier: req.session.code_verifier });  // Update callback URL
         console.log('TokenSet:', tokenSet);
 
         req.session.tokenSet = tokenSet;
