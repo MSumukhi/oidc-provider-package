@@ -35,7 +35,7 @@ app.use((req, res, next) => {
 });
 
 // Discover the OIDC provider
-Issuer.discover('http://localhost:3000')
+Issuer.discover('http://localhost')  // Changed port to 80
   .then(oidcIssuer => {
     const client = new oidcIssuer.Client({
       client_id: 'oidcCLIENT',
